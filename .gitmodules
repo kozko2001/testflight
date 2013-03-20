@@ -1,0 +1,3 @@
+[submodule "optfunc"]
+	path = optfunc
+	url = https://github.com/simonw/optfunc.git
