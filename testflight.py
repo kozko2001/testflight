@@ -4,8 +4,8 @@ from subprocess import Popen
 import os
 import sys
 import glob
-from optfunc import optfunc
 import json
+import argparse
 
 def execute(cmd, cwd):
     print cmd
@@ -19,10 +19,10 @@ def exit(msg):
 
 
 
-def testflight(project_folder, comment="", configuration="DEBUG",
-        distribution=None, config="/etc/testflight/testflight.json",
-        testflight_token="", testflight_team="", testflight_distributionlist=""):
-    "Usage: testflight %xcode_proj_folder testflight_comment"
+def testflight(project_folder, comment=None, configuration="DEBUG",
+        config="/etc/testflight/testflight.json",
+        testflight_token=None, testflight_team=None,
+        testflight_distributionlist=None):
 
     if os.path.exists(config):
         config_values = json.load(open(config))
@@ -63,15 +63,33 @@ def testflight(project_folder, comment="", configuration="DEBUG",
     if value != 0:
         exit("ERROR step2.2 (xcrun)")
 
-    if testflight_token == "" or testflight_team == "" or comment == "":
+    if not(testflight_token and testflight_team and comment):
         exit("Cannot upload without testflight_token and testflight_team please fill your conf file: %s" % config)
 
     cmd = "curl http://testflightapp.com/api/builds.json  -F file=@'%s' -F api_token='%s' -F team_token='%s' -F notes='%s'" % (ipa_file, testflight_token, testflight_team, comment)
 
-    if testflight_distributionlist != "":
+    if testflight_distributionlist:
         cmd ="%s -F distribution_lists='%s'" % (cmd, testflight_distributionlist)
 
     value = execute(cmd, project_folder)
 
 if __name__ == "__main__":
-    optfunc.run(testflight)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project", help="XcodeProject folder or project name"
+                                   "configured on testflight.conf")
+    parser.add_argument("-c", "--comment", help="Comment for testflight")
+    parser.add_argument("--configuration", help="Configuration schema",
+            default="DEBUG")
+    parser.add_argument("--config", help="testflight.json location",
+            default="/etc/testflight/testflight.json")
+    parser.add_argument("--tf_token", help="TestFlight token")
+    parser.add_argument("--tf_team" , help="TestFlight team Token")
+    parser.add_argument("--tf_list" , help="TestFlight distribution list")
+
+    args   = parser.parse_args()
+    testflight(args.project, comment=args.comment,
+            configuration=args.configuration,
+            config=args.config,
+            testflight_token=args.tf_token,
+            testflight_team =args.tf_team,
+            testflight_distributionlist =args.tf_list)
